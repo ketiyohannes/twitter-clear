@@ -1,25 +1,83 @@
 {
   "expo": {
-    "name": "twitter-clear",
+    "name": "Twitter Clear",
     "slug": "twitter-clear",
-    "version": "1.0.0",
+    "version": "1.0.4",
+    "scheme": "twitterclear",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.personal.twitterclear",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to take photos and videos for your posts.",
+        "NSMicrophoneUsageDescription": "Used to record audio for your videos and Spaces.",
+        "NSPhotoLibraryUsageDescription": "Used to attach photos and videos to your posts.",
+        "NSPhotoLibraryAddUsageDescription": "Used to save photos and videos to your library."
+      }
     },
     "android": {
+      "package": "com.personal.twitterclear",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1DA1F2",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "x.com"
+            },
+            {
+              "scheme": "https",
+              "host": "twitter.com"
+            },
+            {
+              "scheme": "https",
+              "host": "mobile.twitter.com"
+            }
+          ]
+        }
+      ],
+      "versionCode": 5,
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES"
+      ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      [
+        "expo-sharing",
+        {
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "text/plain"
+            ]
+          }
+        }
+      ]
+    ]
   }
 }
