@@ -69,6 +69,19 @@ and the app downloads it. Posted pictures, profile pictures and banners are
 saved in their original quality rather than the scaled-down copy on screen.
 Videos and GIFs are not covered.
 
+## Video quality
+
+Long-press a video to choose the quality videos play at: Auto, Highest, a fixed
+resolution, or Lowest. X streams each video as several renditions and its
+player switches between them by measured bandwidth, which on a slow connection
+means a blurry picture with no way to wait for a sharper one.
+`src/injected/videoQualityScript.ts` rewrites the video's playlist before the
+player reads it, leaving only the chosen rendition. A fixed resolution selects
+the best rendition that does not exceed it.
+
+The choice applies to the videos played next, not to one already loaded, and is
+kept in the page's storage, so signing out of X can reset it to Auto.
+
 ## Updates
 
 The app is installed from a package file rather than a store, so it updates
@@ -111,6 +124,8 @@ npx expo lint       # ESLint
 | `src/share/` | Converts shares to and from the system share sheet |
 | `src/injected/imageSaveScript.ts` | Long-press detection injected into the page |
 | `src/media/` | Downloads pictures into the gallery |
+| `src/injected/videoQualityScript.ts` | Video quality pinning injected into the page |
+| `src/video/` | The qualities on offer and the messages that select them |
 | `src/update/` | Finds, downloads and installs new releases |
 | `src/navigation/urlPolicy.ts` | Decides where each navigation is handled |
 | `scripts/release-android.sh` | Builds and publishes a release |

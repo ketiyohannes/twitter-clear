@@ -29,6 +29,7 @@ import { AD_FILTER_SCRIPT } from '../injected/adFilterScript';
 import { BIRD_LOGO_SCRIPT } from '../injected/birdLogoScript';
 import { IMAGE_SAVE_SCRIPT } from '../injected/imageSaveScript';
 import { SHARE_BRIDGE_SCRIPT } from '../injected/shareBridgeScript';
+import { VIDEO_QUALITY_SCRIPT } from '../injected/videoQualityScript';
 import { parseSaveImageMessage } from '../media/imageDownload';
 import { promptToSaveImage } from '../media/saveImage';
 import { classifyUrl, getWebHost, isTwitterUrl } from '../navigation/urlPolicy';
@@ -41,8 +42,14 @@ import {
   LIGHT_BACKGROUND,
   parseThemeMessage,
 } from '../theme/pageTheme';
+import {
+  buildSetVideoQualityScript,
+  parseVideoQualityMessage,
+  type VideoQuality,
+} from '../video/videoQuality';
 import { ErrorView } from './ErrorView';
 import { UpdateBanner } from './UpdateBanner';
+import { VideoQualitySheet } from './VideoQualitySheet';
 
 // `WebView<P = undefined>` intersects its props with `P`. TypeScript 6 reduces
 // that default to `never`, so the extra-props parameter is pinned explicitly.
@@ -56,10 +63,16 @@ const NO_DATA_DETECTORS: DataDetectorTypes[] = ['none'];
 /** The value the iOS wrapper substitutes for `decelerationRate="normal"`. */
 const NORMAL_DECELERATION_RATE = 0.998;
 
-/** Everything injected into the page. Each script is independent of the others. */
+/**
+ * Everything injected into the page. Each script is independent of the others,
+ * but the order of the two long-press handlers matters: a press on a video is
+ * claimed by the video script before the image script can read the video's
+ * poster as a picture to save.
+ */
 const PAGE_SCRIPT = [
   AD_FILTER_SCRIPT,
   SHARE_BRIDGE_SCRIPT,
+  VIDEO_QUALITY_SCRIPT,
   IMAGE_SAVE_SCRIPT,
   BIRD_LOGO_SCRIPT,
 ].join('\n');
@@ -119,6 +132,8 @@ export function TwitterWebView() {
   const systemColorScheme = useColorScheme();
 
   const [pageBackground, setPageBackground] = useState<string | null>(null);
+  // The video quality in effect while its picker is open, else `null`.
+  const [videoQualityInEffect, setVideoQualityInEffect] = useState<VideoQuality | null>(null);
   // Bumped to remount the WebView after its render process is killed.
   const [webViewGeneration, setWebViewGeneration] = useState(0);
   const [initialUrl] = useState(resolveInitialUrl);
@@ -207,11 +222,27 @@ export function TwitterWebView() {
       return;
     }
 
+    // The user long-pressed a video: offer the qualities to play videos at.
+    const videoQuality = parseVideoQualityMessage(data);
+    if (videoQuality) {
+      setVideoQualityInEffect(videoQuality);
+      return;
+    }
+
     // The user long-pressed a picture: offer to save it to the gallery.
     const image = parseSaveImageMessage(data);
     if (image) {
       promptToSaveImage(image);
     }
+  }, []);
+
+  const closeVideoQualityPicker = useCallback(() => {
+    setVideoQualityInEffect(null);
+  }, []);
+
+  const chooseVideoQuality = useCallback((quality: VideoQuality) => {
+    webViewRef.current?.injectJavaScript(buildSetVideoQualityScript(quality));
+    setVideoQualityInEffect(null);
   }, []);
 
   const reload = useCallback(() => {
@@ -349,6 +380,13 @@ export function TwitterWebView() {
           webviewDebuggingEnabled={__DEV__}
         />
       </KeyboardAvoidingView>
+      <VideoQualitySheet
+        backgroundColor={backgroundColor}
+        current={videoQualityInEffect}
+        isDark={isDark}
+        onChoose={chooseVideoQuality}
+        onClose={closeVideoQualityPicker}
+      />
     </View>
   );
 }

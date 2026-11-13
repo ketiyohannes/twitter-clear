@@ -441,6 +441,68 @@ describe('DOM filter', () => {
     assert.equal(isHidden(page, 'recycled'), false);
   });
 
+  it('hides a judged post when an ad label is written into an existing element', async () => {
+    const page = createPage(tweetCell('written', ORGANIC_TWEET + '<div><span id="slot">2h</span></div>'));
+    await page.nextFrame();
+    assert.equal(isHidden(page, 'written'), false);
+
+    const slot = page.document.getElementById('slot');
+    assert.ok(slot?.firstChild);
+    slot.firstChild.nodeValue = 'Ad';
+    await page.nextFrame();
+
+    assert.equal(isHidden(page, 'written'), true);
+  });
+
+  it('reveals a hidden cell once its ad label is rewritten', async () => {
+    const page = createPage(
+      tweetCell('rewritten', ORGANIC_TWEET + '<div><span id="label">Ad</span></div>'),
+    );
+    await page.nextFrame();
+    assert.equal(isHidden(page, 'rewritten'), true);
+
+    const label = page.document.getElementById('label');
+    assert.ok(label?.firstChild);
+    label.firstChild.nodeValue = '2h';
+    await page.nextFrame();
+
+    assert.equal(isHidden(page, 'rewritten'), false);
+  });
+
+  it('reads only what changed inside a post it has already judged', async () => {
+    const words = Array.from({ length: 50 }, (_, index) => `<span>word ${index}</span>`).join('');
+    const page = createPage(
+      tweetCell('busy', ORGANIC_TWEET + `<div>${words}</div><div><span id="count">1</span></div>`),
+    );
+    await page.nextFrame();
+
+    // Counts how many elements have their text read from here on.
+    const prototype = page.dom.window.Node.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'textContent');
+    assert.ok(descriptor?.get && descriptor.set);
+    const readText = descriptor.get;
+    let reads = 0;
+    Object.defineProperty(prototype, 'textContent', {
+      configurable: true,
+      get(this: Node) {
+        reads += 1;
+        return readText.call(this);
+      },
+      set: descriptor.set,
+    });
+
+    const count = page.document.getElementById('count');
+    assert.ok(count?.firstChild);
+    for (let tick = 2; tick <= 20; tick += 1) {
+      count.firstChild.nodeValue = String(tick);
+      await page.nextFrame();
+    }
+
+    assert.equal(isHidden(page, 'busy'), false);
+    // One read per tick: the counter itself, not the fifty spans around it.
+    assert.ok(reads <= 19, `read the text of ${reads} elements for 19 small changes`);
+  });
+
   it('ships the rule that actually hides marked cells', () => {
     const page = createPage();
     const rules = Array.from(page.document.querySelectorAll('style'), (style) => style.textContent);

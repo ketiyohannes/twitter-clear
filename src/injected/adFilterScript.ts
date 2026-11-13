@@ -237,29 +237,45 @@ export const AD_FILTER_SCRIPT = String.raw`
   // them; they only back up the DOM fallback for the English interface.
   var AD_LABEL_PATTERN = /^(?:Ad|Promoted(?: by .+)?)$/;
 
-  function hasAdLabel(candidate) {
-    var spans = candidate.getElementsByTagName('span');
+  function isAdLabel(span) {
+    if (span.childElementCount !== 0) {
+      return false;
+    }
+    var text = span.textContent;
+    if (!text || text.length > 80 || !AD_LABEL_PATTERN.test(text.trim())) {
+      return false;
+    }
+    return !span.closest(USER_CONTENT_SELECTOR);
+  }
+
+  /** Whether "root" is an ad label or contains one. */
+  function hasAdLabel(root) {
+    if (root.tagName === 'SPAN' && isAdLabel(root)) {
+      return true;
+    }
+    var spans = root.getElementsByTagName('span');
     for (var index = 0; index < spans.length; index++) {
-      var span = spans[index];
-      if (span.childElementCount !== 0) {
-        continue;
-      }
-      var text = span.textContent;
-      if (!text || text.length > 80 || !AD_LABEL_PATTERN.test(text.trim())) {
-        continue;
-      }
-      if (!span.closest(USER_CONTENT_SELECTOR)) {
+      if (isAdLabel(spans[index])) {
         return true;
       }
     }
     return false;
   }
 
+  function containerOf(candidate) {
+    return candidate.closest(CELL_SELECTOR) || candidate;
+  }
+
+  // Candidates that have been read in full at least once.
+  var judgedCandidates = new WeakSet();
+
+  /** Reads a whole candidate and hides or reveals its cell accordingly. */
   function evaluateCandidate(candidate) {
     if (!candidate.isConnected) {
       return;
     }
-    var container = candidate.closest(CELL_SELECTOR) || candidate;
+    judgedCandidates.add(candidate);
+    var container = containerOf(candidate);
     if (hasAdLabel(candidate)) {
       container.setAttribute(HIDDEN_ATTRIBUTE, '');
     } else if (container.hasAttribute(HIDDEN_ATTRIBUTE)) {
@@ -268,15 +284,48 @@ export const AD_FILTER_SCRIPT = String.raw`
     }
   }
 
+  /**
+   * Judges a candidate that was already read in full from the parts of it that
+   * changed since. A post keeps changing while it is on screen (counters,
+   * media, timers), and reading all of it on every change adds up to a visible
+   * cost while scrolling. An ad label can only appear inside what changed.
+   */
+  function evaluateChanges(candidate, changedElements) {
+    if (!candidate.isConnected) {
+      return;
+    }
+    var container = containerOf(candidate);
+    if (container.hasAttribute(HIDDEN_ATTRIBUTE)) {
+      // The change may have removed the label, so the whole candidate is read.
+      evaluateCandidate(candidate);
+      return;
+    }
+    for (var index = 0; index < changedElements.length; index++) {
+      var changed = changedElements[index];
+      if (candidate.contains(changed) && hasAdLabel(changed)) {
+        container.setAttribute(HIDDEN_ATTRIBUTE, '');
+        return;
+      }
+    }
+  }
+
+  // Candidates to read in full, and the changed elements of candidates that
+  // only need those parts read.
   var pendingCandidates = new Set();
+  var pendingChanges = new Map();
   var flushScheduled = false;
 
   function flushCandidates() {
     flushScheduled = false;
     var candidates = Array.from(pendingCandidates);
+    var changes = Array.from(pendingChanges);
     pendingCandidates.clear();
+    pendingChanges.clear();
     for (var index = 0; index < candidates.length; index++) {
       evaluateCandidate(candidates[index]);
+    }
+    for (var changeIndex = 0; changeIndex < changes.length; changeIndex++) {
+      evaluateChanges(changes[changeIndex][0], Array.from(changes[changeIndex][1]));
     }
   }
 
@@ -288,17 +337,32 @@ export const AD_FILTER_SCRIPT = String.raw`
     (window.requestAnimationFrame || window.setTimeout)(flushCandidates);
   }
 
+  /** Queues what an added or changed element requires to be read. */
   function collectCandidates(node) {
     if (!node || node.nodeType !== 1) {
       return;
     }
     var owner = node.closest(CANDIDATE_SELECTOR);
     if (owner) {
-      pendingCandidates.add(owner);
+      if (owner === node || !judgedCandidates.has(owner)) {
+        pendingCandidates.add(owner);
+        pendingChanges.delete(owner);
+      } else if (!pendingCandidates.has(owner)) {
+        var changedElements = pendingChanges.get(owner);
+        if (!changedElements) {
+          changedElements = new Set();
+          pendingChanges.set(owner, changedElements);
+        }
+        changedElements.add(node);
+      }
+    }
+    if (node.firstElementChild === null) {
+      return;
     }
     var nested = node.querySelectorAll(CANDIDATE_SELECTOR);
     for (var index = 0; index < nested.length; index++) {
       pendingCandidates.add(nested[index]);
+      pendingChanges.delete(nested[index]);
     }
   }
 
@@ -320,7 +384,7 @@ export const AD_FILTER_SCRIPT = String.raw`
           collectCandidates(added.nodeType === 1 ? added : added.parentElement);
         }
       }
-      if (pendingCandidates.size > 0) {
+      if (pendingCandidates.size > 0 || pendingChanges.size > 0) {
         scheduleFlush();
       }
     });

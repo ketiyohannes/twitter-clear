@@ -2,7 +2,7 @@
   "expo": {
     "name": "Twitter Clear",
     "slug": "twitter-clear",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "scheme": "twitterclear",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -48,7 +48,7 @@
           ]
         }
       ],
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "android.permission.REQUEST_INSTALL_PACKAGES"
       ],
