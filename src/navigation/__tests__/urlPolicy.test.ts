@@ -58,11 +58,28 @@ describe('classifyUrl', () => {
       'intent://x.com/home#Intent;package=com.twitter.android;end',
       'itms-apps://apps.apple.com/app/id333903271',
       'market://details?id=com.twitter.android',
+      'https://play.google.com/store/apps/details?id=com.twitter.android&referrer=utm_source%3Drweb',
+      'https://play.google.com/store/apps/details?hl=en&id=com.twitter.android',
+      'https://apps.apple.com/us/app/x/id333903271',
+      'https://apps.apple.com/app/id333903271?mt=8',
+      'https://itunes.apple.com/app/twitter/id333903271',
       'javascript:alert(1)',
       'not a url',
       '',
     ]) {
       assert.equal(classifyUrl(url), 'blocked', url);
+    }
+  });
+
+  it('still opens store pages of other apps in the in-app browser', () => {
+    for (const url of [
+      'https://play.google.com/store/apps/details?id=com.example.game',
+      'https://play.google.com/store/apps/details?id=com.twitter.android.lite',
+      'https://play.google.com/store/search?q=id%3Dcom.twitter.android',
+      'https://apps.apple.com/us/app/example/id3339032710',
+      'https://apps.apple.com/us/app/example/id123456789',
+    ]) {
+      assert.equal(classifyUrl(url), 'external', url);
     }
   });
 });

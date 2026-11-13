@@ -29,6 +29,13 @@ const INLINE_SCHEMES: readonly string[] = ['about', 'blob', 'data'];
 /** Schemes delegated to the operating system. */
 const SYSTEM_SCHEMES: readonly string[] = ['mailto', 'tel', 'sms'];
 
+// Store pages of the official client, which the web app sends signed-out
+// visitors to. Pages of other apps stay ordinary external links.
+const OFFICIAL_APP_STORE_PATTERNS: readonly RegExp[] = [
+  /^https?:\/\/play\.google\.com\/store\/apps\/details\?(?:[^#]*&)?id=com\.twitter\.android(?:[&#]|$)/i,
+  /^https?:\/\/(?:apps|itunes)\.apple\.com\/(?:[^?#]*\/)?id333903271(?:[/?#]|$)/i,
+];
+
 const SCHEME_PATTERN = /^([a-z][a-z0-9+.-]*):/i;
 // Captures the host of an http(s) URL, skipping optional credentials and port.
 // Backslashes end the authority like slashes do, matching how browsers parse
@@ -62,7 +69,7 @@ export function classifyUrl(url: string): UrlDestination {
   }
 
   const host = getWebHost(trimmedUrl);
-  if (!host) {
+  if (!host || OFFICIAL_APP_STORE_PATTERNS.some((pattern) => pattern.test(trimmedUrl))) {
     return 'blocked';
   }
   return INTERNAL_HOSTS.some((candidate) => matchesHost(host, candidate))

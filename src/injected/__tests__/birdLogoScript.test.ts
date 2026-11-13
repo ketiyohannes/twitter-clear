@@ -7,6 +7,8 @@ import { BIRD_LOGO_SCRIPT } from '../birdLogoScript.ts';
 
 const X_ICON_PATH =
   'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z';
+const X_ICON_ALTERNATE_PATH =
+  'm21.62 21.5-7.47-10.9 6.97-8.1H18.7l-5.62 6.54L8.6 2.5H2.48L9.68 13l-7.3 8.5H4.8l5.96-6.93 4.76 6.93zM7.8 4.03l10.93 15.94H16.3L5.38 4.03z';
 const X_LANDING_PATH = 'M285.38 207.711L462.954 1.5H420.874L266.687 180.55L143.538 1.5H1.50003Z';
 const HEART_PATH = 'M17.06 3a5.7 5.7 0 0 1 4.81 3.16z';
 const BIRD_PATH_PREFIX = 'M23.643 4.937c-.835.37';
@@ -53,6 +55,13 @@ function fillOf(page: Page, id: string): string {
 describe('bird logo', () => {
   it('replaces the X icon with the bird and colors it', () => {
     const page = createPage(iconSvg('logo', X_ICON_PATH));
+
+    assert.ok(pathData(page, 'logo').startsWith(BIRD_PATH_PREFIX));
+    assert.equal(fillOf(page, 'logo'), BIRD_COLOR);
+  });
+
+  it('replaces the alternate shape of the X icon', () => {
+    const page = createPage(`<a href="/">${iconSvg('logo', X_ICON_ALTERNATE_PATH)}</a>`);
 
     assert.ok(pathData(page, 'logo').startsWith(BIRD_PATH_PREFIX));
     assert.equal(fillOf(page, 'logo'), BIRD_COLOR);

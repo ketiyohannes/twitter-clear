@@ -27,7 +27,10 @@ import type {
 import { HOME_URL, USER_AGENT } from '../config';
 import { AD_FILTER_SCRIPT } from '../injected/adFilterScript';
 import { BIRD_LOGO_SCRIPT } from '../injected/birdLogoScript';
+import { IMAGE_SAVE_SCRIPT } from '../injected/imageSaveScript';
 import { SHARE_BRIDGE_SCRIPT } from '../injected/shareBridgeScript';
+import { parseSaveImageMessage } from '../media/imageDownload';
+import { promptToSaveImage } from '../media/saveImage';
 import { classifyUrl, getWebHost, isTwitterUrl } from '../navigation/urlPolicy';
 import { buildComposeUrl } from '../share/incomingShare';
 import { buildShareContent, parseShareMessage } from '../share/outgoingShare';
@@ -54,7 +57,12 @@ const NO_DATA_DETECTORS: DataDetectorTypes[] = ['none'];
 const NORMAL_DECELERATION_RATE = 0.998;
 
 /** Everything injected into the page. Each script is independent of the others. */
-const PAGE_SCRIPT = [AD_FILTER_SCRIPT, SHARE_BRIDGE_SCRIPT, BIRD_LOGO_SCRIPT].join('\n');
+const PAGE_SCRIPT = [
+  AD_FILTER_SCRIPT,
+  SHARE_BRIDGE_SCRIPT,
+  IMAGE_SAVE_SCRIPT,
+  BIRD_LOGO_SCRIPT,
+].join('\n');
 
 const BIRD_LOGO = require('../../assets/bird.png');
 
@@ -157,8 +165,12 @@ export function TwitterWebView() {
     [openExternal],
   );
 
+  // Only navigations of the page itself are routed; embedded frames load
+  // freely. Android reports top-level navigations only and leaves `isTopFrame`
+  // unset, so a request counts as a frame's only when it says so explicitly.
   const handleShouldStartLoad = useCallback(
-    (request: ShouldStartLoadRequest): boolean => !request.isTopFrame || routeUrl(request.url),
+    (request: ShouldStartLoadRequest): boolean =>
+      (request.isTopFrame as boolean | undefined) === false || routeUrl(request.url),
     [routeUrl],
   );
 
@@ -192,6 +204,13 @@ export function TwitterWebView() {
     const shareContent = shareRequest && buildShareContent(shareRequest);
     if (shareContent) {
       Share.share(shareContent, { dialogTitle: shareContent.title }).catch(ignoreError);
+      return;
+    }
+
+    // The user long-pressed a picture: offer to save it to the gallery.
+    const image = parseSaveImageMessage(data);
+    if (image) {
+      promptToSaveImage(image);
     }
   }, []);
 

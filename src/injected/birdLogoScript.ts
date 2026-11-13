@@ -36,8 +36,10 @@ export const BIRD_LOGO_SCRIPT = String.raw`
     '13.255-7.098 13.255-13.254 0-.2-.005-.402-.014-.602.91-.658 1.7-1.477 2.323-2.41z';
 
   var RESTORED_ATTRIBUTE = 'data-twitter-clear-logo';
-  // The 24x24 X icon. Matching on the path data is language-independent.
-  var ICON_PATH_SELECTOR = 'path[d^="M18.244 2.25h3.308"]';
+  // The 24x24 X icon, in each of the shapes the page draws it with. Matching on
+  // the path data is language-independent.
+  var ICON_PATH_SELECTOR =
+    'path[d^="M18.244 2.25h3.308"], path[d^="m21.62 21.5-7.47-10.9 6.97-8.1"]';
   // The large landing-page logo.
   var LABELLED_LOGO_SELECTOR =
     'svg[aria-label="X"][role="img"]:not([' + RESTORED_ATTRIBUTE + '])';

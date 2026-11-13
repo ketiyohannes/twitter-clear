@@ -61,6 +61,14 @@ affiliated with or endorsed by X Corp.
   shared content filled in. Shared images and videos are not supported: the web
   composer only accepts files the user picks by hand.
 
+## Saving images
+
+Long-press a picture to save it to the gallery. A WebView has no menu for
+that, so `src/injected/imageSaveScript.ts` reports the picture under the finger
+and the app downloads it. Posted pictures, profile pictures and banners are
+saved in their original quality rather than the scaled-down copy on screen.
+Videos and GIFs are not covered.
+
 ## Updates
 
 The app is installed from a package file rather than a store, so it updates
@@ -101,6 +109,8 @@ npx expo lint       # ESLint
 | `src/injected/birdLogoScript.ts` | Logo swap injected into the page |
 | `src/injected/shareBridgeScript.ts` | Web Share API bridge injected into the page |
 | `src/share/` | Converts shares to and from the system share sheet |
+| `src/injected/imageSaveScript.ts` | Long-press detection injected into the page |
+| `src/media/` | Downloads pictures into the gallery |
 | `src/update/` | Finds, downloads and installs new releases |
 | `src/navigation/urlPolicy.ts` | Decides where each navigation is handled |
 | `scripts/release-android.sh` | Builds and publishes a release |
